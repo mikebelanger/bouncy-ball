@@ -1,10 +1,11 @@
 # bouncy-ball
 
-Just fooling around with the monet library.
+Just fooling around with the monet library.  Click on the canvas to put an orange
+ball.
 
 ## Overview
 
-Eventually get gravity going on the orange balls.  Maybe other stuff, who knows!
+Give the balls gravity and bounciness.  Maybe other stuff, who knows!
 
 ## Setup
 
