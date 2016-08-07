@@ -1,5 +1,6 @@
 (ns bouncy-ball.core
   (:require [monet.canvas :as canvas]
+            [monet.geometry :as geo]
             [dommy.core :as dommy]))
 
 ;;Create a head count which will be translated to a keyword identifier
@@ -17,7 +18,7 @@
 (def monet-canvas (canvas/init canvas-dom "2d"))
 
 (defn change-xy [mc k x y]
-  "Changes the entity k's :value-> :x/:y values to the x y parameters"
+  "Changes an mc context's entity k :value (:x and :y sub-vals) to x, y inputs."
   (canvas/update-entity mc k (fn [e] (assoc-in e [:value :x] x)))
   (canvas/update-entity mc k (fn [e] (assoc-in e [:value :y] y))))
 
@@ -39,6 +40,16 @@
                                         (canvas/fill-style "#3a638c")
                                         (canvas/fill-rect val)))))
 
+;;This adds the floor
+(canvas/add-entity monet-canvas :floor
+                   (canvas/entity {:x 0 :y 390 :w 500 :h 10} ; val
+                                  nil                       ; update function
+                                  (fn [ctx val]             ; draw function
+                                    (-> ctx
+                                        (canvas/fill-style "#8bc34a")
+                                        (canvas/fill-rect val)))))
+
+
 
 ;;Get current mouse location
 (defn move-handler [e]
@@ -59,7 +70,7 @@
     (let [new-name (keyword (str "circle-" @entity-n))]
     ;;Add entity to the context
       (canvas/add-entity monet-canvas new-name
-                         (canvas/entity {:x x :y y :w 15 :h 15}
+                         (canvas/entity {:x x :y y :w 15 :h 15 :acc 1.03}
                                         nil
                                         (fn [ctx val]
                                           (-> ctx
@@ -68,8 +79,14 @@
                                                               :y (:y val)
                                                               :r 15})
                                               (canvas/fill)))))
-  ;;Now we'll add gravity
-  (add-behavior monet-canvas new-name (fn [val] (assoc val :y (+ 1 (:y val))))))))
+
+  ;;Check to see if it's within the blue-background
+  (add-behavior monet-canvas new-name (fn [val]
+      (if (geo/collision? val (canvas/get-entity monet-canvas :floor))
+
+            ;;Highly primitive gravity/collision simulation.
+            (assoc val :acc (* -1 (:acc val)))
+            (assoc val :y (* (:y val) (:acc val)))))))))
 
 ;;This draws the 'preview' circle by following the cursor.
 (canvas/add-entity monet-canvas :preview-circle
