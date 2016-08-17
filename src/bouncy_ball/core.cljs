@@ -1,7 +1,27 @@
 (ns bouncy-ball.core
   (:require [monet.canvas :as canvas]
             [monet.geometry :as geo]
-            [dommy.core :as dommy]))
+            [dommy.core :as dommy]
+            [big-bang.core :refer [big-bang]]
+            [big-bang.events.browser :refer [client-coords]]))
+
+;;Randomly generate colors
+(def colors [
+  "#E16889"
+  "#FE853E"
+  "#6EC59B"
+  "#FDBA52"
+  "#F5DED0"
+  "#94614C"
+  "#2D97D3"
+  "#48C3CB"
+  "#A9A6D3"
+  "#C0C1BC"
+])
+
+(def width 500)
+(def height 400)
+(def mouse-coords (atom [50 50]))
 
 ;;Create a head count which will be translated to a keyword identifier
 ;;for each entity.
@@ -10,102 +30,39 @@
 ;;Find the canvas element
 (def canvas-dom (.getElementById js/document "main"))
 
-;;create an atom for mouse position
-(def mouse-position (atom {:x 0
-                           :y 0}))
-
 ;;Define the canvas from canvas' getContext
-(def monet-canvas (canvas/init canvas-dom "2d"))
+(def whole-ctx (canvas/get-context canvas-dom :2d))
 
-(defn change-xy [mc k x y]
-  "Changes an mc context's entity k :value (:x and :y sub-vals) to x, y inputs."
-  (canvas/update-entity mc k (fn [e] (assoc-in e [:value :x] x)))
-  (canvas/update-entity mc k (fn [e] (assoc-in e [:value :y] y))))
+;;Draw ball on ball-canvas node for a 'preview' node.
 
-(defn add-behavior [mc k func]
-  "Gives the entity a new update behavior"
-  (canvas/update-entity mc k (fn [e] (assoc e :update func))))
+(defn draw-ball [ctx radius]
+  (canvas/clear-rect whole-ctx {:x 0
+                                :y 0
+                                :w 500
+                                :h 500})
+  (canvas/fill-style ctx "#e91e63")
+  (canvas/circle ctx  {:x (nth mouse-coords 0)
+                       :y (nth mouse-coords 1)
+                       :r radius})
+  (canvas/fill ctx))
 
-(defn add-force [val k]
-  "To be attached to an entity's :update key, val represents entities' :value
-  and k the key (usually x or y values)"
-  (assoc val k (+ 1 (k val))))
+(defn draw-floor []
+  (let [val {:x 0 :y 480 :w 500 :h 20}] ; val
+        (-> whole-ctx
+            (canvas/fill-style "#3a638c")
+            (canvas/fill-rect val)
+            (canvas/fill))))
 
-;;This adds the background
-(canvas/add-entity monet-canvas :blue-background
-                   (canvas/entity {:x 0 :y 0 :w 500 :h 400} ; val
-                                  nil                       ; update function
-                                  (fn [ctx val]             ; draw function
-                                    (-> ctx
-                                        (canvas/fill-style "#3a638c")
-                                        (canvas/fill-rect val)))))
+(defn update-state [event world-state]
+  (assoc world-state :mouse-coords (client-coords event)))
 
-;;This adds the floor
-(canvas/add-entity monet-canvas :floor
-                   (canvas/entity {:x 0 :y 390 :w 500 :h 10} ; val
-                                  nil                       ; update function
-                                  (fn [ctx val]             ; draw function
-                                    (-> ctx
-                                        (canvas/fill-style "#8bc34a")
-                                        (canvas/fill-rect val)))))
+(defn render [world-state]
+  (set! mouse-coords (:mouse-coords world-state))
+  (draw-floor)
+  (draw-ball whole-ctx 15)
+  (js/console.log mouse-coords))
 
-
-
-;;Get current mouse location
-(defn move-handler [e]
-    (set! mouse-position {:x (.-x e)
-                          :y (.-y e)}))
-
-;;handle the mouse clicks
-(defn click-handler [e]
-  "Wherever you click, a ball appears.  First let's grab the mouse coordinates"
-  (let [the-context (:ctx monet-canvas)
-        x (.-x e)
-        y (.-y e)]
-
-    ;;Increment entity head count, for name of new entity
-    (swap! entity-n inc)
-
-    ;;Get the new name
-    (let [new-name (keyword (str "circle-" @entity-n))]
-    ;;Add entity to the context
-      (canvas/add-entity monet-canvas new-name
-                         (canvas/entity {:x x :y y :w 15 :h 15 :acc 1.03}
-                                        nil
-                                        (fn [ctx val]
-                                          (-> ctx
-                                              (canvas/fill-style "#ff5722")
-                                              (canvas/circle {:x (:x val)
-                                                              :y (:y val)
-                                                              :r 15})
-                                              (canvas/fill)))))
-
-  ;;Check to see if it's within the blue-background
-  (add-behavior monet-canvas new-name (fn [val]
-      (if (geo/collision? val (canvas/get-entity monet-canvas :floor))
-
-            ;;Highly primitive gravity/collision simulation.
-            (assoc val :acc (* -1 (:acc val)))
-            (assoc val :y (* (:y val) (:acc val)))))))))
-
-;;This draws the 'preview' circle by following the cursor.
-(canvas/add-entity monet-canvas :preview-circle
-                   (canvas/entity {:x (:x mouse-position)
-                                   :y (:y mouse-position)
-                                   :w 15
-                                   :h 15}
-                                  nil
-                                  (fn [ctx val]
-                                    (-> ctx
-                                        (canvas/fill-style "#e91e63")
-                                        (canvas/circle {:x (:x mouse-position)
-                                                        :y (:y mouse-position)
-                                                        :r 15})
-                                        (canvas/fill)))))
-
-
-;;create an event listener for the mouse position.
-(dommy/listen! canvas-dom :mousemove move-handler)
-
-;;create an event listener for the click
-(dommy/listen! canvas-dom :click click-handler)
+(big-bang
+  :initial-state {:mouse-coords [0 0]}
+  :on-mousemove update-state
+  :to-draw render)

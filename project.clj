@@ -12,7 +12,9 @@
                   :exclusions [org.clojure/tools.reader]]
                  [rm-hull/monet "0.3.0"]
                  [prismatic/dommy "1.1.0"]
-                 [proto-repl "0.3.1"]]
+                 [proto-repl "0.3.1"]
+                 [jayq "2.5.4"]
+                 [rm-hull/big-bang "0.0.1-SNAPSHOT"]]
 
   :plugins [[lein-figwheel "0.5.4-7"]
             [lein-cljsbuild "1.1.3" :exclusions [[org.clojure/clojure]]]]
