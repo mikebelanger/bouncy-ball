@@ -1,16 +1,18 @@
+;;Big thanks to Richard Hull for sharing this on his excellent programming
+;;enchilladas website : http://programming-enchiladas.destructuring-bind.org/
+
 (ns bouncy-ball.ball
   (:require [ball.vector :as vec]))
 
 (defn make-ball [x y]
   {:location (vec/make-vector x y)
-   :velocity (vec/make-vector 1 1)
+   :velocity (vec/make-vector 0 1)
    :acceleration (vec/make-vector 0 0)})
 
-(defn- apply-forces [ball forces]
-  (assoc ball
-         :acceleration (vec/add
-                        (:acceleration ball)
-                        (vec/add-all forces))))
+(defn apply-forces [ball vec-force]
+  (assoc ball :acceleration (vec/add
+                            (:acceleration ball)
+                            vec-force)))
 
 (defn update-location [ball]
   (let [new-velocity (->
@@ -23,9 +25,4 @@
     (assoc ball
            :location new-location
            :velocity new-velocity
-           :acceleration [0 0])))
-
-
-(defn tick [w h r]
-  (fn [ball other-balls]
-    (update-location ball)))
+           :acceleration (:acceleration ball))))
