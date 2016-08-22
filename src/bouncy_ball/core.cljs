@@ -46,12 +46,13 @@
   (canvas/fill-style ctx col)
   (canvas/circle ctx  {:x (nth location 0)
                        :y (nth location 1)
-                       :r radius})
+                       :r radius
+                       :color col})
   (canvas/fill ctx))
 
 (defn draw-floor [ctx w col]
   (canvas/fill-style ctx col)
-  (canvas/fill-rect ctx {:x 0 :y 400 :w w :h 20}))
+  (canvas/fill-rect ctx {:x 0 :y 480 :w w :h 20}))
 
 (defn update-state [event world-state]
   (assoc world-state :mouse-coords (vector (.-x event) (.-y event))))
@@ -59,15 +60,15 @@
 (defn add-ball [event world-state]
   (js/console.log "population: " (:entities world-state))
   (let [new-ball (ball/make-ball (nth (client-coords event) 0)
-                                 (nth (client-coords event) 1))
+                                 (nth (client-coords event) 1) (rand-nth colors))
         updated-entities (merge (:entities world-state) new-ball)]
 
         (assoc world-state :entities updated-entities)))
 
 (defn update-ent [event world-state]
   (let [new-entities (->> (:entities world-state)
-                          (map #(ball/bounce % [0 398] :y 15))
-                          (map #(ball/apply-forces % [0 0.005]))
+                          (map #(ball/bounce % [500 465] :y 15))
+                          (map #(ball/apply-forces % [0 1.1] 0.3))
                           (map #(ball/update-location %)))]
 
     (assoc world-state :entities new-entities)))
@@ -75,7 +76,7 @@
 (defn render [{:keys [entities]} world-state]
   (clear whole-ctx)
   (doseq [entity entities]
-    (draw-ball whole-ctx (:location entity) (:radius entity) "#8bc34a"))
+    (draw-ball whole-ctx (:location entity) (:radius entity) (:color entity)))
 
   (draw-floor whole-ctx 500 "#2196f3"))
 
