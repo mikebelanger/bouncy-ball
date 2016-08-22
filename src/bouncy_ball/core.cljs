@@ -37,11 +37,6 @@
   :entities {}
 })
 
-(defn handle-incoming-msg [event world-state]
-  (->
-    world-state
-    (merge event)))
-
 (defn clear [ctx]
   (canvas/clear-rect ctx {:x 0
                           :y 0
@@ -64,41 +59,33 @@
   (assoc world-state :mouse-coords (vector (.-x event) (.-y event))))
 
 (defn add-ball [event world-state]
+  (js/console.log world-state "add-ball count: " (count (:entities world-state)))
   (swap! entity-n inc)
 
   (let [new-ball (ball/make-ball (nth (client-coords event) 0)
                                  (nth (client-coords event) 1))
-        new-name (keyword (str "ball-" @entity-n))]
-    (assoc-in world-state [:entities new-name] new-ball)))
+        updated-entities (merge (:entities world-state) new-ball)]
 
-(defn draw-all-balls [world-state ctx]
-  (doall (map (fn [x]
-                (draw-ball ctx (:location (nth x 1)) 15 "#2196f3"))
-              (:entities world-state))))
+        (assoc world-state :entities updated-entities)))
 
-(defn update-ent [event {:keys [mouse-coords entities] :as world-state}]
-  (loop [in     entities
-         out    []]
-    (if (empty? in)
-      (assoc world-state :entities out)
-      (let [shape  (->
-                     (first in)
-                     (update-in [:entities] ball/update-location in))]
-        (recur
-          (next in)
-          (conj out shape))))))
+(defn update-ent [event world-state]
+  (let [new-entities (->> (:entities world-state)
+                          (map #(ball/apply-forces % [0 10]))
+                          (map #(ball/update-location %)))]
+    (assoc world-state :entities new-entities)))
 
-(defn render [world-state]
-  ;;For some reason I have to update the atom in render.
+(defn render [{:keys [entities]} world-state]
   (clear whole-ctx)
-  (draw-all-balls world-state whole-ctx)
-  (draw-floor whole-ctx 500 "#2196f3")
-  (draw-ball whole-ctx (:mouse-coords world-state) 15 "#e91e63"))
+  (doseq [entity entities]
+    (draw-ball whole-ctx (:location entity) 15 "#8bc34a"))
+
+  (draw-floor whole-ctx 500 "#2196f3"))
 
 (go
   (big-bang
     :initial-state initial-state
-    :on-mousemove update-state
+    :tick-rate 30
     :on-tick update-ent
+    :on-mousemove update-state
     :on-click add-ball
     :to-draw render))
