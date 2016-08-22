@@ -6,7 +6,8 @@
             [cljs.core.async :as async :refer [<!]]
             [big-bang.core :refer [big-bang]]
             [big-bang.events.browser :refer [client-coords]]
-            [bouncy-ball.ball :as ball]))
+            [bouncy-ball.ball :as ball]
+            [bouncy-ball.vector :as vector]))
 
 ;;Randomly generate colors
 (def colors [
@@ -22,9 +23,6 @@
   "#C0C1BC"
 ])
 
-;;Create a head count which will be translated to a keyword identifier
-;;for each entity.
-(def entity-n (atom 0))
 
 ;;Find the canvas element
 (def canvas-dom (.getElementById js/document "main"))
@@ -59,9 +57,7 @@
   (assoc world-state :mouse-coords (vector (.-x event) (.-y event))))
 
 (defn add-ball [event world-state]
-  (js/console.log world-state "add-ball count: " (count (:entities world-state)))
-  (swap! entity-n inc)
-
+  (js/console.log "population: " (:entities world-state))
   (let [new-ball (ball/make-ball (nth (client-coords event) 0)
                                  (nth (client-coords event) 1))
         updated-entities (merge (:entities world-state) new-ball)]
@@ -70,14 +66,16 @@
 
 (defn update-ent [event world-state]
   (let [new-entities (->> (:entities world-state)
-                          (map #(ball/apply-forces % [0 10]))
+                          (map #(ball/bounce % [0 398] :y 15))
+                          (map #(ball/apply-forces % [0 0.005]))
                           (map #(ball/update-location %)))]
+
     (assoc world-state :entities new-entities)))
 
 (defn render [{:keys [entities]} world-state]
   (clear whole-ctx)
   (doseq [entity entities]
-    (draw-ball whole-ctx (:location entity) 15 "#8bc34a"))
+    (draw-ball whole-ctx (:location entity) (:radius entity) "#8bc34a"))
 
   (draw-floor whole-ctx 500 "#2196f3"))
 

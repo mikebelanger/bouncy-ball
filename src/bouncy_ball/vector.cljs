@@ -1,4 +1,4 @@
-(ns ball.vector)
+(ns bouncy-ball.vector)
 
 ;;Big thanks to Richard Hull for sharing this on his excellent programming
 ;;enchilladas website : http://programming-enchiladas.destructuring-bind.org/
